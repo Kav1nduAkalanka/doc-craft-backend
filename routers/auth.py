@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 from database import supabase
 from dependencies import get_me
@@ -89,6 +89,23 @@ async def logout():
     except Exception:
         pass
     return {"message": "Logged out successfully"}
+
+@router.get("/oauth/google")
+async def google_oauth(redirect_to: str = "http://localhost:5173"):
+    try:
+        if supabase is None:
+            raise HTTPException(status_code=500, detail="Database not configured")
+            
+        res = supabase.auth.sign_in_with_oauth({
+            "provider": "google",
+            "options": {
+                "redirect_to": redirect_to
+            }
+        })
+        
+        return RedirectResponse(url=res.url)
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"error": "oauth_error", "message": str(e)})
 
 @users_router.get("/me")
 async def get_me_endpoint(request: Request):
